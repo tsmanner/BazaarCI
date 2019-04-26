@@ -2,6 +2,10 @@ from typing import Optional
 
 from bazaarci.runner.node import Node
 
+__all__ = [
+    "Graph",
+]
+
 
 class Graph(Node, set):
     def __init__(self, name: str, graph: Optional["Graph"] = None):

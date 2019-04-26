@@ -1,3 +1,3 @@
 from .graph import Graph
-from .product import Product
+from .product import *
 from .step import Step

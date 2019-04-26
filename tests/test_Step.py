@@ -8,8 +8,11 @@ class TestNode(TestCase):
     def test_produces(self, mock_Product):
         s = Step("test")
         with self.subTest("With Argument"):
-            s.produces("rawr")
-            mock_Product.from_name.assert_called_once_with("rawr")
+            p = mock_Product()
+            with self.assertRaises(TypeError):
+                s.produces("rawr")
+            s.produces(p)
+            self.assertIn(p, s._produces)
         with self.subTest("Without Argument"):
             produces = s.produces()
             self.assertEqual(len(produces), 1)

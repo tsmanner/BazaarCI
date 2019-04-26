@@ -18,16 +18,26 @@ class Step(Node):
     def produces(self, item: str = None):
         if item is None:
             return self._produces
-        if isinstance(item, str):
-            item = Product.from_name(item)
-        self._produces.add(item)
+        if isinstance(item, Product):
+            self._produces.add(item)
+        else:
+            raise TypeError(
+                "Steps must produce Products, not `{}`".format(
+                    item.__class__.__name__
+                )
+            )
 
     def consumes(self, item: str = None):
         if item is None:
             return self._consumes
-        if isinstance(item, str):
-            item = Product.from_name(item)
-        self._consumes.add(item)
+        if isinstance(item, Product):
+            self._consumes.add(item)
+        else:
+            raise TypeError(
+                "Steps must consume Products, not `{}`".format(
+                    item.__class__.__name__
+                )
+            )
 
     def start(self):
         self.thread = Thread(target=self.run)

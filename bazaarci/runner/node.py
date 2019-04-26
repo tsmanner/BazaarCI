@@ -1,10 +1,21 @@
 from typing import Optional, Set, Union
 
+__all__ = [
+    "Node",
+]
+
 
 class Node:
     def __init__(self, name: str, graph: Optional["Graph"] = None):
         self.graph = graph
         self.name = name
+
+    @property
+    def fullname(self):
+        hierarchyname = ''
+        if self.graph:
+            hierarchyname = self.graph.fullname
+        return '.'.join((hierarchyname, self.name))
 
     def produces(self, item: Union[None, str, "Product"] = None) -> Optional[Set["Product"]]:
         """ With no arguments, returns a `set` of all `Product`s this node produces.
