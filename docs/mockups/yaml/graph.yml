@@ -1,0 +1,13 @@
+graph:
+  name: rawr
+  graph:
+    name: sub
+
+  step1:
+    x: y
+    command: blah
+    type: SubprocessStep
+    produces: [something]
+
+  step2:
+    consumes: [something]

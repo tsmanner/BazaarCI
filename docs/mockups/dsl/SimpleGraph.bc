@@ -1,0 +1,19 @@
+graph rawr {
+  step sOne {
+    x=y
+    produces pOne
+  }
+
+  step sTwo {
+    x=z
+    consumes pTwo
+    consumes pThree
+  }
+
+  product pOne {
+    path="path/to/some.file"
+  }
+
+  using sg1.sg2.sg0.pTwo
+
+}

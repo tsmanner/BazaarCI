@@ -1,0 +1,42 @@
+Graph:
+    'graph' name=Identifier ('{'
+        (steps=Step | subgraphs=Graph | products=Product | uses=Using)*
+    '}')?
+;
+
+Step:
+    'step' name=Identifier ('{'
+        (attributes=KeyValue | produces=OutputProduct | consumes=InputProduct)*
+    '}')?
+;
+
+OutputProduct:
+    'produces' name=Identifier
+;
+
+InputProduct:
+    'consumes' name=Identifier
+;
+
+Product:
+    'product' name=Identifier '{'
+        attributes*=KeyValue
+    '}'
+;
+
+Using:
+    'using' (subgraph=Identifier '.')+ name=Identifier
+;
+
+Keyword:
+    'graph' | 'step' | 'product' | 'produces' | 'consumes' | 'using'
+;
+
+Identifier:
+    !Keyword ID
+;
+
+KeyValue:
+    key=Identifier '=' value=BASETYPE
+;
+

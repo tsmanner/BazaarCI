@@ -7,15 +7,19 @@ Setup Script
 from setuptools import setup
 
 setup(
-    name='bazaarci',
-    version='0.1',
-    description='A digraph dependency based runner and CI tool.',
-    author='Tom Manner',
-    author_email='tom.s.manner@gmail.com',
-    url='https://www.github.com/tsmanner/BazaarCI',
+    name = 'bazaarci',
+    version = '0.1',
+    description = 'A digraph dependency based runner and CI tool.',
+    author = 'Tom Manner',
+    author_email = 'tom.s.manner@gmail.com',
+    url = 'https://www.github.com/tsmanner/BazaarCI',
     # Packages to install
-    packages=[
+    packages = [
         'bazaarci',
         'bazaarci.runner',
+    ],
+    # Dependencies
+    install_requires = [
+        "textx",
     ],
 )
