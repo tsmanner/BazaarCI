@@ -8,3 +8,6 @@ class Product(Event):
 
     def __str__(self):
         return "Product({})".format(self.name)
+
+    def causal_products(self):
+        return {self}

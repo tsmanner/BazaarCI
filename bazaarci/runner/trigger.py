@@ -1,66 +1,60 @@
-from functools import reduce
-from threading import Thread
-from bazaarci.runner.product import Product
+import asyncio
+from concurrent.futures import FIRST_COMPLETED, ALL_COMPLETED
+from threading import Event, Thread
 
-class Trigger:
-    def __init__(self, *args):
-        self.items = set(args)
+class Trigger(Event, asyncio.Future):
+    def __init__(self, *args, return_when):
+        super().__init__(self)
+        self.products = set(args)
+        self.return_when = return_when
+        self.causal_products = None
+        self.pending_products = None
+        self.waiting = False
 
     def add(self, item):
-        self.items.add(item)
-
-    def is_set(self):
-        raise NotImplementedError(
-            "Class `{}` has not implemented a `is_set` method!".format(self.__class__.__name__)
-        )
+        self.products.add(item)
 
     def wait(self):
-        raise NotImplementedError(
-            "Class `{}` has not implemented a `wait` method!".format(self.__class__.__name__)
-        )
-
-    def causal_products(self):
-        raise NotImplementedError(
-            "Class `{}` has not implemented a `causal_products` method!".format(self.__class__.__name__)
-        )
+        if (not self.waiting) and (not self.is_set()):
+            self.waiting = True
+            self.causal_products, self.pending_products = yield from asyncio.wait(
+                self.products,
+                return_when=self.return_when
+            )
+            [pending.cancel() for pending in self.pending_products]
+            self.set()
+            self.waiting = False
+        return Event.wait(self)
 
 
 class AllOf(Trigger):
-    def is_set(self):
-        return all(item.is_set() for item in self.items)
-
-    def wait(self):
-        [item.wait() for item in self.items]
-
-    def causal_products(self):
-        cps = set()
-        for item in self.items:
-            if isinstance(item, Product):
-                cps.add(item)
-            else:
-                cps += item.causal_products()
+    def __init__(self, *args):
+        super().__init__(*args, ALL_COMPLETED)
 
 
 class AnyOf(Trigger):
     def __init__(self, *args):
-        super().__init__(*args)
-        self._causal_products = set()
+        super().__init__(*args, FIRST_COMPLETED)
 
-    def is_set(self):
-        return any(product.is_set() for product in self.items)
+
+class ExactlyN(Trigger):
+    def __init__(self, n, *args):
+        super().__init__(*args, FIRST_COMPLETED)
+        self.n = n
 
     def wait(self):
-        threads = []
-        # Define a thread target that waits and adds the first
-        # set product or trigger and terminates the other threads
-        def wait_handler(product_or_trigger):
-            product_or_trigger.wait()
-            # Only add the first one
-            if len(self._causal_products) == 0:
-                self._causal_products.add(product_or_trigger)
-                for thread in threads:
-                    thread.terminate()
-                    thread.join()
-        # Set up a thread to wait on each item
-        threads = [Thread(target=wait_handler, args=(item,)) for item in self.items]
-        [thread.start() for thread in threads]
+        if (not self.waiting) and (not self.is_set()):
+            self.waiting = True
+            pending_products = self.products
+            for _ in range(self.n):
+                complete, pending_products =  yield from asyncio.wait(
+                    pending_products,
+                    return_when=self.return_when
+                )
+                causal_products += complete
+            [product.cancel() for product in pending_products]
+            self.pending_products = pending_products
+            self.causal_products = causal_products
+            self.set()
+            self.waiting = False
+        return Event.wait(self)
