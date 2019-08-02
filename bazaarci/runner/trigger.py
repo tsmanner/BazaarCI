@@ -1,44 +1,34 @@
+import asyncio
+from concurrent.futures import FIRST_COMPLETED, ALL_COMPLETED
 from functools import reduce
-from threading import Thread
-from bazaarci.runner.product import Product
+from threading import Event, Thread
 
-class Trigger:
-    def __init__(self, *args):
-        self.items = set(args)
+class Trigger(Event):
+    def __init__(self, *args, return_when):
+        super().__init__(self)
+        self.products = set(args)
+        self.causal_products = None
 
     def add(self, item):
-        self.items.add(item)
-
-    def is_set(self):
-        raise NotImplementedError(
-            "Class `{}` has not implemented a `is_set` method!".format(self.__class__.__name__)
-        )
-
-    def wait(self):
-        raise NotImplementedError(
-            "Class `{}` has not implemented a `wait` method!".format(self.__class__.__name__)
-        )
+        self.products.add(item)
 
     def causal_products(self):
         raise NotImplementedError(
-            "Class `{}` has not implemented a `causal_products` method!".format(self.__class__.__name__)
+            "Class `{}` has not implemented a `causal_products` method!".format(
+                self.__class__.__name__
+            )
         )
 
 
 class AllOf(Trigger):
-    def is_set(self):
-        return all(item.is_set() for item in self.items)
-
     def wait(self):
-        [item.wait() for item in self.items]
+        [item.wait() for item in self.products]
+        self.set()
 
     def causal_products(self):
         cps = set()
-        for item in self.items:
-            if isinstance(item, Product):
-                cps.add(item)
-            else:
-                cps += item.causal_products()
+        for item in self.products:
+            cps += item.causal_products()
 
 
 class AnyOf(Trigger):
@@ -46,21 +36,21 @@ class AnyOf(Trigger):
         super().__init__(*args)
         self._causal_products = set()
 
-    def is_set(self):
-        return any(product.is_set() for product in self.items)
-
     def wait(self):
         threads = []
+
         # Define a thread target that waits and adds the first
         # set product or trigger and terminates the other threads
         def wait_handler(product_or_trigger):
             product_or_trigger.wait()
             # Only add the first one
-            if len(self._causal_products) == 0:
-                self._causal_products.add(product_or_trigger)
-                for thread in threads:
-                    thread.terminate()
-                    thread.join()
+            if not self.is_set():
+                self.set()
+                self._causal_products = product_or_trigger.causal_products()
+                # Join all the threads, we don't care anymore
+                # when/which complete
+                [thread.join() for thread in threads]
+
         # Set up a thread to wait on each item
-        threads = [Thread(target=wait_handler, args=(item,)) for item in self.items]
+        threads = [Thread(target=wait_handler, args=(item,)) for item in self.products]
         [thread.start() for thread in threads]
