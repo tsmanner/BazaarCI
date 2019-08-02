@@ -7,7 +7,6 @@ class Trigger(Event):
     def __init__(self, *args, return_when):
         super().__init__(self)
         self.products = set(args)
-        self.causal_products = None
 
     def add(self, item):
         self.products.add(item)
