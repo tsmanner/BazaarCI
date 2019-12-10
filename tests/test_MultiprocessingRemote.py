@@ -23,4 +23,6 @@ class TestMultiprocessingRemote(TestCase):
         """
         r = MultiprocessingRemote()
         wrapped = r.execute_in_process(getpid)
-        self.assertNotEqual(wrapped(None), getpid())
+        remote_pid = wrapped(None)
+        self.assertIsInstance(remote_pid, int)
+        self.assertNotEqual(remote_pid, getpid())
